@@ -40,7 +40,7 @@ async function fetchAnswer(timestamp: number): Promise<FormattedWordleData> {
 	console.log(`Fetching Wordle answer: ${apiUrl}`);
 
 	const browser = await chromium.launch({
-		headless: false,
+		headless: true,
 		args: ["--no-sandbox", "--disable-setuid-sandbox"],
 	});
 
@@ -76,7 +76,7 @@ async function fetchHintsByNavigation(
 	_puzzleId: number,
 ): Promise<HintResponse> {
 	const browser = await chromium.launch({
-		headless: false, // Set to true once it works
+		headless: true, // Set to true once it works
 		args: ["--no-sandbox", "--disable-setuid-sandbox"],
 	});
 
