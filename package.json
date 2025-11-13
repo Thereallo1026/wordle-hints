@@ -1,0 +1,22 @@
+{
+  "name": "wordle-hints",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "scrape": "bun scripts/scraper.ts",
+    "backfill": "bun scripts/backfill.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "playwright": "^1.56.1"
+  }
+}
