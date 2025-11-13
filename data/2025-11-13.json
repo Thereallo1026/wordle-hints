@@ -1,0 +1,24 @@
+{
+  "hint": {
+    "consonant": "C",
+    "vowel": "U"
+  },
+  "difficulty": {
+    "difficulty": 5.3,
+    "maxDifficulty": 6,
+    "text": "very challenging"
+  },
+  "details": {
+    "definition": [
+      "the side of a die bearing two spots, or a throw of the dice totaling two",
+      "a playing card with two spots",
+      "a tie score",
+      "devil; dickens"
+    ],
+    "source": {
+      "name": "Webster’s New World College Dictionary",
+      "url": "https://www.nytimes.com/2025/11/11/crosswords/wordle-review-1607.html"
+    }
+  },
+  "scrapedAt": 1763008468067
+}
