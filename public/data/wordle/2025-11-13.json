@@ -1,0 +1,52 @@
+{
+  "wordleData": {
+    "id": 2330,
+    "solution": "tinge",
+    "print_date": "2025-11-13",
+    "days_since_launch": 1608,
+    "editor": "Tracy Bennett",
+    "date": 1763005161485,
+    "letters": [
+      {
+        "char": "T",
+        "status": "correct"
+      },
+      {
+        "char": "I",
+        "status": "correct"
+      },
+      {
+        "char": "N",
+        "status": "correct"
+      },
+      {
+        "char": "G",
+        "status": "correct"
+      },
+      {
+        "char": "E",
+        "status": "correct"
+      }
+    ],
+    "error": false
+  },
+  "hintData": {
+    "hint": {
+      "consonant": "",
+      "vowel": ""
+    },
+    "difficulty": {
+      "difficulty": null,
+      "maxDifficulty": null,
+      "text": null
+    },
+    "details": {
+      "definition": null,
+      "source": {
+        "name": null,
+        "url": "https://www.nytimes.com/2025/11/12/crosswords/wordle-review-1608.html"
+      }
+    }
+  },
+  "scrapedAt": 1763005167150
+}
