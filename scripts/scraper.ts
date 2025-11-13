@@ -1,5 +1,5 @@
-import * as cheerio from "cheerio";
 import { chromium } from "playwright";
+import * as cheerio from "cheerio";
 
 interface WordleApiResp {
 	id: number;
@@ -37,7 +37,7 @@ async function fetchAnswer(timestamp: number): Promise<FormattedWordleData> {
 
 	const apiUrl = `https://www.nytimes.com/svc/wordle/v2/${formattedDate}.json`;
 
-	console.log(`Fetching Wordle answer: ${apiUrl}`);
+	console.log(`📡 Fetching Wordle answer: ${apiUrl}`);
 
 	const browser = await chromium.launch({
 		headless: true,
@@ -72,97 +72,40 @@ async function fetchAnswer(timestamp: number): Promise<FormattedWordleData> {
 	}
 }
 
-async function fetchHintsByNavigation(
-	_puzzleId: number,
-): Promise<HintResponse> {
+async function fetchHintsDirectly(hintsUrl: string): Promise<HintResponse> {
+	console.log(`📄 Fetching hints from: ${hintsUrl}`);
+
 	const browser = await chromium.launch({
-		headless: true, // Set to true once it works
+		headless: true, // Can set to false for debugging
 		args: ["--no-sandbox", "--disable-setuid-sandbox"],
 	});
 
 	try {
-		const context = await browser.newContext({
+		const page = await browser.newPage({
 			userAgent:
 				"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
 			viewport: { width: 1920, height: 1080 },
 		});
 
-		const page = await context.newPage();
-
-		console.log("Going to Wordle...");
-		await page.goto("https://www.nytimes.com/games/wordle/index.html", {
+		await page.goto(hintsUrl, {
 			waitUntil: "domcontentloaded",
-			timeout: 30000,
+			timeout: 60000,
 		});
 
-		console.log("Setting localStorage...");
-		await page.evaluate(() => {
-			localStorage.setItem("wordle-help-dismissed", "1");
-		});
-
-		console.log("Reloading...");
-		await page.reload({ waitUntil: "domcontentloaded" });
-
-		console.log("Waiting for Play button...");
-		const playButton = await page.waitForSelector(
-			'button[data-testid="Play"]',
-			{
-				state: "visible",
-				timeout: 30000,
-			},
-		);
-
-		console.log("Clicking Play button...");
-		await playButton.click();
-		await page.waitForTimeout(1000);
-
-		console.log("Waiting for Close button...");
-		const closeButton = await page.waitForSelector(
-			'button[aria-label="Close"]',
-			{
-				state: "visible",
-				timeout: 10000,
-			},
-		);
-
-		console.log("Clicking Close button...");
-		await closeButton.click();
-		await page.waitForTimeout(1000);
-
-		console.log("Waiting for Hints button...");
-		const hintsButton = await page.waitForSelector('a[href*="wordle-review"]', {
-			state: "visible",
-			timeout: 30000,
-		});
-
-		const hintsUrl = await hintsButton.getAttribute("href");
-		console.log(`Hints URL: ${hintsUrl}`);
-
-		console.log("Clicking Hints button...");
-		await Promise.all([
-			hintsButton.click(),
-			page.waitForURL("**/crosswords/wordle-review-**", { timeout: 30000 }),
-		]);
-
-		console.log(`On hints page: ${page.url()}`);
-
-		// Wait for content to load
-		console.log("Waiting for content to load...");
+		console.log("⏳ Waiting for content...");
 		await page.waitForTimeout(5000);
 
-		// Get HTML
 		const html = await page.content();
 
 		// Save for debugging
-		await Bun.write("debug-hints-page.html", html);
-		console.log("Saved HTML to debug-hints-page.html");
+		await Bun.write("debug-hints.html", html);
+		console.log("💾 Saved HTML to debug-hints.html");
 
-		// Parse with Cheerio
 		const $ = cheerio.load(html);
 
-		// Extract hints
-		console.log("\nExtracting data...");
+		console.log("\n📊 Extracting data...");
 
+		// Extract hints
 		let consonant = "";
 		let vowel = "";
 		const revealBlocks = $('[data-testid="reveal-block"]');
@@ -173,7 +116,7 @@ async function fetchHintsByNavigation(
 			const $block = $(block);
 			const buttonText = $block.find('[role="button"]').text().trim();
 			const revealText = $block
-				.find(".show, .css-wndcfh")
+				.find(".show, .css-wndcfh, p")
 				.text()
 				.trim()
 				.toUpperCase();
@@ -181,20 +124,20 @@ async function fetchHintsByNavigation(
 			console.log(`   Block ${i + 1}: "${buttonText}" -> "${revealText}"`);
 
 			if (buttonText.toLowerCase().includes("consonant") && !consonant) {
-				consonant = revealText;
+				consonant = revealText.charAt(0) || revealText;
 			} else if (buttonText.toLowerCase().includes("vowel") && !vowel) {
-				vowel = revealText;
+				vowel = revealText.charAt(0) || revealText;
 			}
 		});
 
 		// Extract difficulty
-		let difficultyText = $("strong.css-8qgvsz").text();
-		if (!difficultyText) difficultyText = $(".css-ac37hb strong").text();
-		if (!difficultyText) {
-			difficultyText = $("strong")
-				.filter((_, el) => $(el).text().includes("guesses"))
-				.text();
-		}
+		let difficultyText = "";
+		$("strong").each((_, el) => {
+			const text = $(el).text();
+			if (text.includes("guesses")) {
+				difficultyText = text;
+			}
+		});
 
 		console.log(`   Difficulty text: "${difficultyText}"`);
 
@@ -203,10 +146,10 @@ async function fetchHintsByNavigation(
 		);
 		const friendlyText = difficultyText.match(/, or ([^.]+)\./)?.[1] ?? null;
 
-		const difficulty = difficultyMatch?.[1]
+		const difficulty = difficultyMatch
 			? Number.parseFloat(difficultyMatch[1])
 			: null;
-		const maxDifficulty = difficultyMatch?.[2]
+		const maxDifficulty = difficultyMatch
 			? Number.parseFloat(difficultyMatch[2])
 			: null;
 
@@ -218,7 +161,7 @@ async function fetchHintsByNavigation(
 			const text = $(el).text();
 			if (text.includes("According to") && !dictionaryName) {
 				const match = text.match(/According to ([^,]+),?/);
-				if (match?.[1]) dictionaryName = match[1].trim();
+				if (match) dictionaryName = match[1].trim();
 			}
 		});
 
@@ -226,19 +169,21 @@ async function fetchHintsByNavigation(
 			const text = $(el).text();
 			if (text.includes("it means") && text.length < 500 && !definition) {
 				const defMatch = text.match(/it means "([^"]+)"/i);
-				if (defMatch?.[1]) definition = defMatch[1].trim();
+				if (defMatch) definition = defMatch[1].trim();
 			}
 		});
 
-		console.log(`   Dictionary: ${dictionaryName}`);
-		console.log(`   Definition: ${definition}`);
+		console.log(`   Consonant: ${consonant || "❌"}`);
+		console.log(`   Vowel: ${vowel || "❌"}`);
+		console.log(`   Dictionary: ${dictionaryName || "❌"}`);
+		console.log(`   Definition: ${definition || "❌"}`);
 
 		return {
 			hint: { consonant, vowel },
 			difficulty: { difficulty, maxDifficulty, text: friendlyText },
 			details: {
 				definition,
-				source: { name: dictionaryName, url: page.url() },
+				source: { name: dictionaryName, url: hintsUrl },
 			},
 		};
 	} finally {
@@ -251,7 +196,7 @@ async function scrapeAndSave(timestamp?: number) {
 	const date = new Date(ts);
 	const dateStr = date.toISOString().split("T")[0];
 
-	console.log(`\nScraping Wordle for ${dateStr}...\n`);
+	console.log(`\n🎯 Scraping Wordle for ${dateStr}...\n`);
 
 	try {
 		// Fetch answer from API
@@ -261,11 +206,21 @@ async function scrapeAndSave(timestamp?: number) {
 			throw new Error("Failed to fetch Wordle data");
 		}
 
-		console.log(`\nGot answer: ${wordleData.solution.toUpperCase()}`);
+		console.log(`\n✅ Got answer: ${wordleData.solution.toUpperCase()}`);
 		console.log(`   Puzzle #${wordleData.days_since_launch}\n`);
 
-		// Fetch hints by navigating
-		const hintData = await fetchHintsByNavigation(wordleData.days_since_launch);
+		// Build hints URL
+		const hintDate = new Date(ts);
+		hintDate.setDate(hintDate.getDate() - 1); // Hints are published day before
+
+		const year = hintDate.getFullYear();
+		const month = String(hintDate.getMonth() + 1).padStart(2, "0");
+		const day = String(hintDate.getDate()).padStart(2, "0");
+
+		const hintsUrl = `https://www.nytimes.com/${year}/${month}/${day}/crosswords/wordle-review-${wordleData.days_since_launch}.html`;
+
+		// Fetch hints
+		const hintData = await fetchHintsDirectly(hintsUrl);
 
 		const combinedData = {
 			wordleData,
@@ -274,25 +229,25 @@ async function scrapeAndSave(timestamp?: number) {
 		};
 
 		// Save to file
-		const dataDir = `${process.cwd()}/data`;
+		const dataDir = `${process.cwd()}/public/data/wordle`;
 		await Bun.write(`${dataDir}/.gitkeep`, "");
 		const filePath = `${dataDir}/${dateStr}.json`;
 
 		await Bun.write(filePath, JSON.stringify(combinedData, null, 2));
 
-		console.log(`\nSuccess!`);
+		console.log(`\n✅ Success!`);
 		console.log(`   File: ${filePath}`);
 		console.log(`   Solution: ${wordleData.solution.toUpperCase()}`);
 		console.log(`   Puzzle #${wordleData.days_since_launch}`);
-		console.log(`   Consonant: ${hintData.hint.consonant || "N/A"}`);
-		console.log(`   Vowel: ${hintData.hint.vowel || "N/A"}`);
+		console.log(`   Consonant: ${hintData.hint.consonant || "❌"}`);
+		console.log(`   Vowel: ${hintData.hint.vowel || "❌"}`);
 		console.log(
-			`   Difficulty: ${hintData.difficulty.difficulty || "N/A"}/${hintData.difficulty.maxDifficulty || "?"}`,
+			`   Difficulty: ${hintData.difficulty.difficulty || "❌"}/${hintData.difficulty.maxDifficulty || "?"}`,
 		);
 
 		return combinedData;
 	} catch (error) {
-		console.error(`\nError:`, error);
+		console.error(`\n❌ Error:`, error);
 		throw error;
 	}
 }
@@ -306,4 +261,4 @@ if (import.meta.main) {
 		});
 }
 
-export { scrapeAndSave, fetchAnswer, fetchHintsByNavigation };
+export { scrapeAndSave, fetchAnswer, fetchHintsDirectly };
