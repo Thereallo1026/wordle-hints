@@ -40,7 +40,7 @@ async function fetchAnswer(timestamp: number): Promise<FormattedWordleData> {
 	console.log(`Fetching Wordle answer: ${apiUrl}`);
 
 	const browser = await chromium.launch({
-		headless: true,
+		headless: false,
 		args: ["--no-sandbox", "--disable-setuid-sandbox"],
 	});
 
